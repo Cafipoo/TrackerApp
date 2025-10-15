@@ -1,20 +1,20 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/db"
-import { HabitsList } from "@/components/habits/habits-list"
+import { EnhancedHabitsList } from "@/components/habits/enhanced-habits-list"
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
-import { Plus, Trash2, List } from "lucide-react"
+import { Plus, List, Filter, Search } from "lucide-react"
 import Link from "next/link"
 
-export default async function DashboardPage() {
+export default async function HabitsPage() {
   const session = await auth()
 
   if (!session?.user?.id) {
     redirect("/login")
   }
 
-  // Récupérer les habitudes de l'utilisateur
+  // Récupérer toutes les habitudes de l'utilisateur
   const habits = await prisma.habit.findMany({
     where: {
       userId: session.user.id,
@@ -42,20 +42,22 @@ export default async function DashboardPage() {
       <div className="p-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Bienvenue, {session.user?.name || "Utilisateur"} !
-            </h1>
+            <div className="flex items-center gap-3">
+              <List className="h-8 w-8 text-gray-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Mes habitudes
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Gérez et suivez toutes vos habitudes quotidiennes
+                </p>
+              </div>
+            </div>
             <div className="flex gap-3">
               <Button asChild variant="outline">
-                <Link href="/habits">
-                  <List className="h-4 w-4 mr-2" />
-                  Toutes les habitudes
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/deleted-habits">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Habitudes supprimées
+                <Link href="/habits?view=grid">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filtres
                 </Link>
               </Button>
               <Button asChild>
@@ -66,10 +68,9 @@ export default async function DashboardPage() {
               </Button>
             </div>
           </div>
-        
-        <div className="space-y-6">
+
           {/* Statistiques rapides */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900">Total des habitudes</h3>
               <p className="text-3xl font-bold text-blue-600">{habits.length}</p>
@@ -92,21 +93,34 @@ export default async function DashboardPage() {
                 }, 0)}
               </p>
             </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900">Taux de réussite</h3>
+              <p className="text-3xl font-bold text-orange-600">
+                {habits.length > 0 ? Math.round(
+                  (habits.reduce((acc, habit) => {
+                    const today = new Date().toDateString()
+                    const todayCompletion = habit.completions.find(c => 
+                      new Date(c.date).toDateString() === today && c.completed
+                    )
+                    return acc + (todayCompletion ? 1 : 0)
+                  }, 0) / habits.length) * 100
+                ) : 0}%
+              </p>
+            </div>
           </div>
 
           {/* Liste des habitudes */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">Mes habitudes</h2>
+              <h2 className="text-xl font-semibold">Toutes mes habitudes</h2>
               <p className="text-gray-600">
-                Gérez et suivez vos habitudes quotidiennes
+                {habits.length} habitude{habits.length > 1 ? 's' : ''} au total
               </p>
             </div>
             <div className="p-6">
-              <HabitsList habits={habits} />
+              <EnhancedHabitsList habits={habits} />
             </div>
           </div>
-        </div>
         </div>
       </div>
     </div>
