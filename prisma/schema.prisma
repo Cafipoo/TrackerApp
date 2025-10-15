@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String          @id @default(cuid())
+  name         String?
+  email        String          @unique
+  password     String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  habits       Habit[]
+  deletedHabits DeletedHabit[]
+}
+
+model Habit {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  frequency   String            @default("daily")
+  category    String?
+  color       String?           @default("#3b82f6")
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  userId      String
+  iconName    String?           @default("heart")
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions HabitCompletion[]
+}
+
+model HabitCompletion {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  completed Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+}
+
+model DeletedHabit {
+  id          String            @id @default(cuid())
+  originalId  String            // ID de l'habitude originale
+  name        String
+  description String?
+  frequency   String            @default("daily")
+  category    String?
+  color       String?           @default("#3b82f6")
+  iconName    String?           @default("heart")
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now()) // Date de création originale
+  updatedAt   DateTime          @default(now()) // Date de dernière modification originale
+  deletedAt   DateTime          @default(now()) // Date de suppression
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions DeletedHabitCompletion[]
+}
+
+model DeletedHabitCompletion {
+  id        String       @id @default(cuid())
+  date      DateTime     @default(now())
+  completed Boolean      @default(true)
+  notes     String?
+  createdAt DateTime     @default(now())
+  habitId   String
+  habit     DeletedHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+}
